@@ -57,13 +57,6 @@ node tests/reat-parser.test.js
 
 La prueba no requiere paquetes adicionales y cubre texto en línea, etiquetas y valores separados, tablas con tabuladores, NIF/CIF/NIE y ausencia de datos reconocibles.
 
-## Publicación con GitHub Pages
-
-1. Cree un repositorio llamado, por ejemplo, `rastro-carrier`.
-2. Suba el contenido de esta carpeta a la rama `main`, con `index.html` en la raíz.
-3. En **Settings → Pages**, seleccione despliegue desde la rama `main` y la carpeta raíz.
-4. Abra la URL publicada y pruebe la consulta REAT, la extracción, el cuaderno, la exportación y la importación JSON.
-5. Antes de publicar una versión, revise [`docs/PUBLICACION-GITHUB.md`](docs/PUBLICACION-GITHUB.md) y cree un `Release` etiquetado, por ejemplo `v0.1.0`.
 
 ## Licencia y marca
 
