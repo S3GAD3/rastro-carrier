@@ -2,6 +2,8 @@
 
 Herramienta web local del Kit RASTRO para ordenar consultas OSINT abiertas relacionadas con vehículos de transporte por carretera, sus autorizaciones y las empresas o personas vinculadas.
 
+Enlace: https://s3gad3.github.io/rastro-carrier/
+
 > **Importante:** es una ayuda de investigación. No sustituye consultas institucionales, diligencias, certificaciones registrales ni la conservación de evidencias originales. Verifique cada dato en su fuente y documente la fecha, el método y las limitaciones de la consulta.
 
 ## Funciones
