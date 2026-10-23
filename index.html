@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="RASTRO CARRIER: apoyo local para investigación OSINT sobre transporte por carretera.">
+<meta name="theme-color" content="#15171a">
+<title>Rastro Carrier</title>
+<style>
+  :root {
+    --bg:#15171a; --panel:#1c1f23; --panel-2:#202428; --line:#33383e; --line-soft:#292d32;
+    --ink:#e7e4dc; --ink-muted:#9a9ea5; --amber:#c1913f; --amber-dim:#8a6a30; --teal:#5c8a82; --rust:#a15a4a;
+    --mono: ui-monospace,'Cascadia Code','Segoe UI Mono',monospace;
+    --sans: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:#f1efe9; --panel:#fff; --panel-2:#f6f4ee; --line:#d9d5c9; --line-soft:#e6e2d6;
+      --ink:#23221d; --ink-muted:#6b6a63; --amber:#96692a; --amber-dim:#b98844; --teal:#3f665f; --rust:#8a4536;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  :root[data-theme="light"] {
+    --bg:#f1efe9; --panel:#fff; --panel-2:#f6f4ee; --line:#d9d5c9; --line-soft:#e6e2d6;
+    --ink:#23221d; --ink-muted:#6b6a63; --amber:#96692a; --amber-dim:#b98844; --teal:#3f665f; --rust:#8a4536;
+    color-scheme: light;
+  }
+  * { box-sizing:border-box; }
+  html { height:100%; }
+  body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  .shell { max-width:1100px; margin:0 auto; padding:20px 16px 64px; }
+
+  header.top { border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .brand-row { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; }
+  .brand-lockup { display:flex; align-items:center; gap:14px; min-width:0; }
+  .brand-logo { width:88px; height:88px; object-fit:cover; border:1px solid var(--line); border-radius:12px; background:#092b45; }
+  .brand-actions { display:flex; gap:8px; align-items:center; }
+  .kicker { font-family:var(--mono); font-size:12px; color:var(--amber); letter-spacing:.06em; }
+  .local-status { color:var(--teal); border:1px solid var(--line); border-radius:999px; padding:5px 9px; font:11px var(--mono); }
+  .quicknav { position:sticky; top:0; z-index:5; display:flex; gap:6px; overflow-x:auto; padding:8px 0; margin-bottom:18px; background:var(--bg); border-bottom:1px solid var(--line-soft); scrollbar-width:thin; }
+  .quicknav a { flex:0 0 auto; color:var(--ink-muted); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:6px 10px; font:11px var(--mono); }
+  .quicknav a:hover,.quicknav a:focus { color:var(--amber); border-color:var(--amber); }
+  h1 { font-family:var(--mono); font-size:28px; margin:4px 0 2px; font-weight:700; letter-spacing:.02em; }
+  h1 span { color:var(--amber); }
+  .lede { color:var(--ink-muted); font-size:14px; max-width:62ch; margin:6px 0 0; }
+  .case { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px; }
+  .case input, .case select { font-family:var(--mono); font-size:13px; }
+
+  section { margin-bottom:32px; }
+  h2 { font-size:13px; color:var(--ink-muted); font-family:var(--mono); letter-spacing:.03em; margin:0 0 12px; display:flex; align-items:center; gap:8px; font-weight:500; }
+  h2 b { color:var(--amber); font-weight:600; }
+  h2::after { content:""; flex:1; height:1px; background:var(--line-soft); }
+
+  input, select, textarea { background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:6px; padding:9px 10px; font-size:14px; font-family:var(--sans); }
+  input:focus, select:focus, textarea:focus { outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
+  input::placeholder, textarea::placeholder { color:var(--ink-muted); opacity:.65; }
+  textarea { width:100%; min-height:90px; resize:vertical; }
+
+  .btn { background:transparent; border:1px solid var(--amber); color:var(--amber); font-family:var(--mono); font-size:13px; padding:9px 14px;
+    border-radius:6px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; line-height:1.2; }
+  .btn:hover { background:var(--amber); color:var(--bg); }
+  .btn.primary { background:var(--amber); color:var(--bg); }
+  .btn.primary:hover { background:var(--amber-dim); border-color:var(--amber-dim); }
+  .btn.ghost { border-color:var(--line); color:var(--ink-muted); }
+  .btn.ghost:hover { border-color:var(--ink-muted); background:none; color:var(--ink); }
+  .btn.sm { font-size:11.5px; padding:5px 9px; }
+  .btn[aria-disabled="true"] { opacity:.45; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .note { font-size:12px; color:var(--ink-muted); }
+
+  /* Hero matrícula */
+  .hero { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  .plate-wrap { display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; }
+  .plate { flex:1 1 260px; display:flex; align-items:stretch; border:2px solid var(--ink); border-radius:8px; overflow:hidden; background:#f4f3ee; }
+  .plate .eu { background:#1f3f9e; color:#fff; font:700 13px var(--sans); width:38px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:6px 0; }
+  .plate .eu i { font-style:normal; font-size:9px; letter-spacing:2px; color:#f5cd32; margin-bottom:auto; }
+  .plate input { flex:1; border:0; border-radius:0; background:transparent; color:#111; font:700 30px var(--mono); letter-spacing:.12em; text-transform:uppercase; padding:10px 12px; min-width:0; }
+  .plate input:focus { outline:none; }
+  .plate:focus-within { outline:2px solid var(--amber); outline-offset:2px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 4px; min-height:26px; }
+  .chip { font-family:var(--mono); font-size:11.5px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-muted); }
+  .chip.ok { color:var(--teal); border-color:var(--teal); }
+  .chip.warn { color:var(--amber); border-color:var(--amber-dim); }
+  .chip.bad { color:var(--rust); border-color:var(--rust); }
+  .steps { margin:12px 0 0; padding-left:20px; font-size:13px; color:var(--ink-muted); }
+  .steps li { margin:3px 0; }
+  .steps b { color:var(--ink); font-weight:600; }
+  .paste-box { margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; }
+  .parsed { display:none; margin-top:12px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .parsed.show { display:block; }
+  .parsed .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  @media (max-width:640px){ .parsed .grid { grid-template-columns:1fr; } }
+
+  /* Identificadores */
+  .grid-form { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media (max-width:640px){ .grid-form { grid-template-columns:1fr; } }
+  .field label { display:block; font-size:12px; color:var(--ink-muted); margin-bottom:4px; }
+  .field input { width:100%; font-family:var(--mono); font-size:15px; background:var(--panel); }
+  .field .v { font-family:var(--mono); font-size:11.5px; margin-top:4px; min-height:1.2em; color:var(--ink-muted); }
+  .v.ok { color:var(--teal) !important; } .v.bad { color:var(--rust) !important; } .v.warn { color:var(--amber) !important; }
+  .sep-title { grid-column:1/-1; font-family:var(--mono); font-size:11px; color:var(--ink-muted); margin-top:4px; }
+
+  /* Cadena */
+  .chain { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .node { font-family:var(--mono); font-size:12px; padding:7px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel); color:var(--ink-muted); }
+  .node.open { border-color:var(--amber-dim); color:var(--amber); }
+  .node.done { border-color:var(--teal); color:var(--teal); }
+  .node small { display:block; font-size:10px; opacity:.8; }
+  .arrow { color:var(--line); font-family:var(--mono); }
+
+  /* Fuentes */
+  .sources { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:15px; display:flex; flex-direction:column; gap:9px; }
+  .card.primary-src { border-color:var(--amber-dim); }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .card h3 { margin:0; font-size:14.5px; font-weight:600; }
+  .badge { font-family:var(--mono); font-size:10.5px; padding:2px 7px; border-radius:999px; border:1px solid currentColor; white-space:nowrap; }
+  .badge.ok { color:var(--teal); } .badge.paid { color:var(--amber); } .badge.restricted { color:var(--rust); } .badge.agg { color:var(--ink-muted); }
+  .card p { margin:0; font-size:13px; color:var(--ink-muted); }
+  .card .meta { font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); }
+  .card .hint { font-family:var(--mono); font-size:12px; color:var(--amber); background:rgba(193,145,63,.1); border:1px dashed var(--amber-dim); border-radius:4px; padding:6px 8px; }
+  .card .actions { margin-top:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  button:focus-visible,a:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+  .entry-actions { display:flex; gap:10px; align-items:center; }
+
+  /* Dorks */
+  .opsec { border-left:3px solid var(--rust); background:var(--panel); padding:10px 12px; border-radius:0 6px 6px 0; font-size:12.5px; color:var(--ink-muted); margin-bottom:12px; }
+  .opsec b { color:var(--ink); }
+  .dgroups { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+  .dgroup { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .dgroup h3 { margin:0 0 8px; font-size:13px; font-family:var(--mono); color:var(--amber); font-weight:600; }
+  .dork { display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-top:1px solid var(--line-soft); }
+  .dork:first-of-type { border-top:0; }
+  .dork a { flex:1; text-decoration:none; color:var(--ink); font-size:13px; min-width:0; }
+  .dork a:hover .dl { text-decoration:underline; }
+  .dork code { display:block; font-family:var(--mono); font-size:11px; color:var(--ink-muted); overflow-wrap:anywhere; margin-top:2px; }
+  .empty-note { color:var(--ink-muted); font-size:13px; font-style:italic; }
+
+  /* Cuaderno */
+  .log-form { display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:15px; }
+  .entries { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .entry { border-left:2px solid var(--teal); background:var(--panel-2); border-radius:0 6px 6px 0; padding:10px 12px; }
+  .entry.key { border-left-color:var(--amber); }
+  .entry-head { display:flex; justify-content:space-between; gap:10px; font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); margin-bottom:6px; flex-wrap:wrap; }
+  .entry-head .src { color:var(--teal); }
+  .entry.key .src { color:var(--amber); }
+  .entry p { margin:0; font-size:13.5px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .entry .meta { font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); margin-top:6px; overflow-wrap:anywhere; }
+  .entry a { color:var(--amber); overflow-wrap:anywhere; font-size:12px; }
+  .linkbtn { background:none; border:none; color:var(--ink-muted); cursor:pointer; font-family:var(--mono); font-size:11px; text-decoration:underline; padding:0; }
+  details.trace { margin-top:16px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  details.trace summary { cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--ink-muted); }
+  .trace-list { font-family:var(--mono); font-size:11.5px; color:var(--ink-muted); margin:10px 0 0; padding:0; list-style:none; max-height:260px; overflow:auto; }
+  .trace-list li { padding:3px 0; border-top:1px solid var(--line-soft); overflow-wrap:anywhere; }
+  .hashline { font-family:var(--mono); font-size:11.5px; color:var(--teal); overflow-wrap:anywhere; }
+
+  footer { border-top:1px solid var(--line); padding-top:16px; margin-top:40px; font-size:12px; color:var(--ink-muted); max-width:75ch; }
+  footer strong { color:var(--ink); }
+  .toast { position:fixed; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--amber); color:var(--ink); font-family:var(--mono); font-size:12.5px; padding:9px 16px; border-radius:6px;
+    opacity:0; transition:opacity .25s, transform .25s; pointer-events:none; max-width:calc(100% - 32px); z-index:10; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @media (max-width:600px){ .shell{padding:14px 11px 48px}.brand-logo{width:64px;height:64px}.brand-lockup{gap:10px}h1{font-size:23px}.lede{font-size:13px}.local-status{font-size:10px} }
+  @media print { .btn, .case, .log-form, .toast, .paste-box, #osint, .linkbtn, .quicknav { display:none !important; } body { background:#fff; color:#111; } .brand-logo{width:58px;height:58px} }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="brand-row">
+      <div class="brand-lockup">
+        <img class="brand-logo" alt="Logotipo del Kit RASTRO" src="data:image/jpeg;base64,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">
+        <div>
+          <div class="kicker">KIT DE INVESTIGACIÓN DE FUENTES ABIERTAS</div>
+          <h1>RASTRO<span>·</span>CARRIER</h1>
+          <div class="note">OSINT · Transporte por carretera</div>
+        </div>
+      </div>
+      <div class="brand-actions"><span class="local-status" title="Los expedientes se guardan en el almacenamiento local del navegador">● Datos locales</span><button class="btn ghost sm" id="themeBtn" type="button" aria-label="Cambiar tema">☼ Tema</button></div>
+    </div>
+    <p class="lede">De la matrícula al titular de la autorización y, desde ahí, a la sociedad, sus administradores, sanciones, contratos y huella digital. Consultas manuales en fuentes abiertas; la página no envía datos a ningún servidor.</p>
+    <div class="case">
+      <label for="caseRef" class="note">Expediente</label>
+      <input id="caseRef" placeholder="2026/0451" autocomplete="off" style="width:150px">
+      <select id="casePicker" aria-label="Expedientes guardados"><option value="">Guardados…</option></select>
+      <button class="btn ghost sm" id="newCaseBtn" type="button">Nuevo</button>
+      <button class="btn ghost sm" id="deleteCaseBtn" type="button">Eliminar</button>
+    </div>
+  </header>
+  <nav class="quicknav" aria-label="Navegación de la herramienta">
+    <a href="#rapida">01 · Matrícula</a><a href="#ids">02 · Identificadores</a><a href="#cadena">03 · Pivotes</a><a href="#fuentes">04 · Fuentes</a><a href="#osint">05 · OSINT</a><a href="#cuaderno">06 · Cuaderno e informe</a>
+  </nav>
+
+  <!-- 01 -->
+  <section id="rapida">
+    <h2><b>01</b> Matrícula → titular de la autorización</h2>
+    <div class="hero">
+      <div class="plate-wrap">
+        <div class="plate">
+          <div class="eu"><i>★★★</i>E</div>
+          <label for="matricula" class="sr-only">Matrícula</label>
+          <input id="matricula" placeholder="0000 BBB" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+        </div>
+        <a class="btn primary" id="reatGo" href="#" target="_blank" rel="noopener noreferrer">Copiar y abrir REAT →</a>
+      </div>
+      <div class="chips" id="plateChips"></div>
+      <ol class="steps">
+        <li>Pulse <b>Copiar y abrir REAT</b>: la matrícula queda en el portapapeles y se abre el registro oficial.</li>
+        <li>En REAT elija la consulta de <b>vehículos</b>, identificación por <b>matrícula</b>, pegue y consulte.</li>
+        <li>Si el vehículo está adscrito, seleccione todo el resultado (texto), cópielo y péguelo abajo.</li>
+        <li>Si es semirremolque o no aparece, pivote por la <b>cabeza tractora</b> o por la rotulación (sección 05).</li>
+      </ol>
+
+      <div class="paste-box">
+        <label for="reatPaste" class="note">Resultado de REAT (pegar texto)</label>
+        <textarea id="reatPaste" placeholder="Pegue aquí el texto copiado de la ficha de REAT…"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="parseBtn" type="button">Extraer titular, NIF y autorización</button>
+          <span class="note">Extracción local y heurística: revise antes de volcar.</span>
+        </div>
+        <div class="parsed" id="parsed">
+          <div class="grid">
+            <div class="field"><label for="pTitular">Titular</label><input id="pTitular"></div>
+            <div class="field"><label for="pNif">NIF / CIF</label><input id="pNif"></div>
+            <div class="field"><label for="pAut">Autorización</label><input id="pAut"></div>
+          </div>
+          <button class="btn primary" id="applyParsed" type="button">Volcar al expediente y registrar apunte</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="ids">
+    <h2><b>02</b> Identificadores del expediente</h2>
+    <div class="grid-form">
+      <div class="field"><label for="nif">NIF / CIF / NIE del titular</label><input id="nif" placeholder="B00000000" autocomplete="off"><div class="v" id="vNif"></div></div>
+      <div class="field"><label for="nombre">Nombre / razón social</label><input id="nombre" placeholder="Transportes Ejemplo S.L." autocomplete="off"><div class="v" id="vNombre"></div></div>
+      <div class="field"><label for="autorizacion">Nº de autorización</label><input id="autorizacion" placeholder="MDP0000000" autocomplete="off"><div class="v" id="vAut"></div></div>
+      <div class="field"><label for="persona">Administrador / persona vinculada</label><input id="persona" placeholder="Nombre y apellidos" autocomplete="off"><div class="v" id="vPersona"></div></div>
+      <div class="sep-title">Pivotes adicionales</div>
+      <div class="field"><label for="domicilio">Domicilio social / base operativa</label><input id="domicilio" placeholder="Calle, nº, municipio" autocomplete="off"><div class="v"></div></div>
+      <div class="field"><label for="dominio">Dominio web / correo</label><input id="dominio" placeholder="empresa.es o info@empresa.es" autocomplete="off"><div class="v" id="vDom"></div></div>
+      <div class="field"><label for="telefono">Teléfono (rotulación, web, anuncios)</label><input id="telefono" placeholder="600 000 000" autocomplete="off" inputmode="tel"><div class="v" id="vTel"></div></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost sm" id="copyAllBtn" type="button">Copiar identificadores</button>
+      <span class="note">Se guarda solo en este perfil del navegador.</span>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="cadena">
+    <h2><b>03</b> Cadena de pivotes</h2>
+    <div class="chain" id="chain"></div>
+    <p class="note" style="margin-top:8px">Ámbar: fuente abierta sin resultado registrado. Verde: hay apunte en el cuaderno.</p>
+  </section>
+
+  <!-- 04 -->
+  <section id="fuentes">
+    <h2><b>04</b> Fuentes oficiales y registros</h2>
+    <div class="opsec"><b>Privacidad:</b> la herramienta no consulta estos portales por sí misma. Cuando introduzca o pegue un identificador en un servicio externo, se comunica a ese servicio; los enlaces que incluyen una búsqueda en la URL la transmiten al abrirlos.</div>
+    <div class="sources" id="sources"></div>
+    <p class="note" style="margin-top:12px">Esta herramienta no consulta los sistemas de DGT-PID, los datos complementarios del Registro de Vehículos, ERRU (infracciones graves de empresas de la UE), TACHOnet (tarjetas de tacógrafo) ni los sistemas de Inspección de Transporte; use sus canales específicos o institucionales cuando proceda.</p>
+  </section>
+
+  <!-- 05 -->
+  <section id="osint">
+    <h2><b>05</b> OSINT abierto — búsquedas generadas</h2>
+    <div class="opsec"><b>OPSEC:</b> al abrir una búsqueda, el identificador puede transmitirse al buscador o servicio externo de destino; estos pueden registrar consulta, origen y momento. Valore la política de la unidad y evite sesiones personales. Esta página no envía <i>referrer</i> ni consulta automáticamente esos servicios.</div>
+    <div class="row" style="margin-bottom:12px">
+      <label for="engine" class="note">Buscador</label>
+      <select id="engine"><option value="google">Google</option><option value="bing">Bing</option><option value="ddg">DuckDuckGo</option></select>
+    </div>
+    <div class="dgroups" id="dorks"></div>
+    <p class="empty-note" id="dorksEmpty">Introduzca algún identificador para generar las búsquedas.</p>
+  </section>
+
+  <!-- 06 -->
+  <section id="cuaderno">
+    <h2><b>06</b> Cuaderno de campo</h2>
+    <div class="log-form">
+      <div class="row">
+        <label class="sr-only" for="entrySource">Fuente</label>
+        <select id="entrySource"></select>
+        <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="entryKey"> Hallazgo clave</label>
+      </div>
+      <label class="sr-only" for="entryUrl">URL</label>
+      <input id="entryUrl" type="url" placeholder="URL consultada (opcional)" autocomplete="off">
+      <textarea id="entryText" placeholder="Resultado, dato localizado, observaciones y límites de la consulta…"></textarea>
+      <div class="row">
+        <button class="btn ghost sm" id="evBtn" type="button">Adjuntar huella de captura (SHA-256)</button>
+        <input class="sr-only" id="evFile" type="file">
+        <span class="hashline" id="evInfo"></span>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="addEntry" type="button">Registrar resultado</button>
+        <span class="note">La captura no se guarda: solo nombre, tamaño y hash (máx. 100 MB), para cotejo posterior.</span>
+      </div>
+    </div>
+
+    <div class="entries" id="entriesList"></div>
+    <p class="empty-note" id="emptyNote">Aún no hay apuntes en este expediente.</p>
+
+    <details class="trace">
+      <summary>Traza automática de consultas (<span id="traceCount">0</span>)</summary>
+      <ul class="trace-list" id="traceList"></ul>
+    </details>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn ghost" id="exportTxt" type="button">Informe .txt</button>
+      <button class="btn ghost" id="exportHtml" type="button">Informe .html</button>
+      <button class="btn ghost" id="copyReport" type="button">Copiar informe</button>
+      <button class="btn ghost" id="exportJson" type="button">Copia .json</button>
+      <button class="btn ghost" id="importJson" type="button">Restaurar .json</button>
+      <input class="sr-only" id="importFile" type="file" accept="application/json,.json">
+    </div>
+    <p class="hashline" id="exportHash"></p>
+  </section>
+
+  <footer>
+    <strong>Uso previsto:</strong> apoyo a consultas puntuales en fuentes abiertas dentro de una investigación autorizada. No automatiza ni extrae datos de portales y no sustituye los canales institucionales. Los datos se guardan sin cifrar en el almacenamiento local del navegador: use un perfil y dispositivo adecuados, minimice los datos personales y elimine el expediente cuando proceda. Las estimaciones (año por matrícula, forma jurídica, provincia) son orientativas y deben confirmarse en fuente oficial.
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const PREFIX = "rastro-carrier::", OLD_PREFIX = "panel-transporte::";
+const FIELD_IDS = ["matricula","nif","nombre","autorizacion","persona","domicilio","dominio","telefono"];
+const F = Object.fromEntries(FIELD_IDS.map(k => [k, $(k)]));
+const caseRef = $("caseRef");
+const enc = encodeURIComponent;
+
+/* ---------- Fuentes oficiales ---------- */
+const SOURCES = [
+  { id:"REAT", name:"REAT — Registro de Empresas y Actividades de Transporte", badge:["ok","Público"], primary:true, node:"titular",
+    url:"https://apps.fomento.gob.es/crgt/servlet/ServletController?modulo=datosconsulta&accion=inicio&lang=es&estilo=default",
+    by:["matricula","autorizacion","nif","nombre"],
+    desc:"Fuente primaria (art. 53 LOTT). Por matrícula indica si el vehículo está adscrito a una autorización y quién es su titular. También por NIF, nombre o nº de autorización; incluye competencia profesional y CAP." },
+  { id:"DGT · Informe", name:"DGT — Informes de vehículo", badge:["paid","Reducido gratis · detallado con tasa"], node:"vehiculo",
+    url:"https://sede.dgt.gob.es/es/vehiculos/informacion-de-vehiculos/informe-de-un-vehiculo/", by:["matricula"],
+    desc:"El informe reducido es gratuito y ofrece datos básicos. El informe completo incluye identificación del titular, municipio, ITV, kilometraje, cargas y datos técnicos; requiere identificación electrónica y tasa. Compruebe los requisitos oficiales y el motivo de consulta." },
+  { id:"DGT · Distintivo", name:"DGT — Distintivo ambiental", badge:["ok","Público · sin registro"], node:"vehiculo",
+    url:"https://sede.dgt.gob.es/es/vehiculos/informacion-de-vehiculos/distintivo-ambiental/", by:["matricula"],
+    desc:"Devuelve la clasificación ambiental o indica que el vehículo no tiene derecho a distintivo. No identifica al titular ni acredita por sí sola la existencia registral de la matrícula." },
+  { id:"BORME", name:"BORME — Actos inscritos (Sección I)", badge:["ok","Oficial · gratuito"], node:"sociedad",
+    url:"https://www.boe.es/diario_borme/", by:[], searchLabel:"Navegación por fecha y provincia",
+    desc:"Índice oficial del BORME. La Sección I publica actos inscritos, como constituciones, nombramientos, ceses y cambios societarios. Abra el día pertinente y revise la provincia; contraste el resultado con el Registro Mercantil." },
+  { id:"BORME-Anuncios", name:"BORME — Anuncios y avisos (Sección II)", badge:["ok","Oficial · gratuito"], node:"sociedad",
+    url:"https://www.boe.es/buscar/anborme.php", by:["nombre","persona"],
+    desc:"Buscador oficial de anuncios y avisos legales de la Sección II (desde 2001). No es el buscador de actos inscritos ni un registro completo de administradores." },
+  { id:"Registro Mercantil", name:"Registro Mercantil (Registradores)", badge:["paid","Información registral · puede tener coste"], node:"sociedad",
+    url:"https://sede.registradores.org/site/mercantil?lang=es_ES", by:["nombre","nif"],
+    desc:"Permite localizar sociedades por NIF o denominación y consultar información mercantil o representantes. La nota informativa puede tener coste y no equivale a una certificación registral." },
+  { id:"TEU", name:"Tablón Edictal Único (BOE)", badge:["ok","Público · gratuito"], node:"sanciones",
+    url:"https://www.boe.es/notificaciones/", by:["nif","nombre","matricula"],
+    desc:"Buscador de anuncios de notificación publicados cuando no se ha podido practicar la notificación personal. Puede localizar anuncios administrativos o sancionadores; no es un listado completo de sanciones." },
+  { id:"BOE", name:"Buscador general del BOE", badge:["ok","Público · gratuito"], node:"sanciones",
+    url:"https://www.boe.es/buscar/", by:["nombre","nif","persona"],
+    desc:"Edictos, anuncios y resoluciones estatales. Complementa al BORME cuando el titular es persona física." },
+  { id:"VIES", name:"VIES — NIF-IVA intracomunitario (UE)", badge:["ok","Público · gratuito"], node:"sociedad",
+    url:"https://ec.europa.eu/taxation_customs/vies/", by:["nif"], prefix:"ES",
+    desc:"Valida si el NIF-IVA consta para operaciones intracomunitarias. Un resultado negativo o no concluyente no demuestra por sí solo que la empresa carezca de actividad internacional; contraste la vigencia y los datos introducidos." },
+  { id:"PLACSP", name:"Plataforma de Contratación del Sector Público", badge:["ok","Público · gratuito"], node:"contratos",
+    url:"https://contrataciondelestado.es/wps/portal/plataforma/buscadores/", by:["nif","nombre"],
+    desc:"Buscador oficial de licitaciones, adjudicaciones y otros procedimientos. Permite localizar contratos públicos relacionados con la empresa; no representa su volumen total de negocio." },
+  { id:"TED", name:"TED — Contratación pública UE", badge:["ok","Público · gratuito"], node:"contratos",
+    url:"https://ted.europa.eu/es/", by:["nombre"],
+    desc:"Buscador oficial de anuncios de contratación pública de la UE. Busque por razón social y contraste país, entidad adjudicadora y expediente." },
+  { id:"OpenCorporates", name:"OpenCorporates", badge:["agg","Agregador · no oficial"], node:"sociedad",
+    url:null, dyn:f => f.nombre ? "https://opencorporates.com/companies?q="+enc(f.nombre) : "https://opencorporates.com/", by:["nombre"],
+    desc:"Sociedades homónimas o vinculadas en otras jurisdicciones (Portugal, Francia, etc.). Contraste siempre con el registro oficial." }
+];
+const EXTRA_SOURCES = ["OSINT abierto","Otro"];
+const NODES = [
+  { id:"vehiculo", label:"Vehículo", sub:"matrícula · DGT" },
+  { id:"titular", label:"Titular", sub:"REAT · autorización" },
+  { id:"sociedad", label:"Sociedad", sub:"BORME · RM · VIES" },
+  { id:"sanciones", label:"Sanciones", sub:"TEU · BOE" },
+  { id:"contratos", label:"Contratos", sub:"PLACSP · TED" },
+  { id:"huella", label:"Huella digital", sub:"OSINT abierto" }
+];
+const srcNode = id => (SOURCES.find(s => s.id === id) || {}).node || (id === "OSINT abierto" ? "huella" : null);
+
+/* ---------- Tablas de apoyo ---------- */
+const PLATE_LETTERS = "BCDFGHJKLMNPRSTVWXYZ";
+const PLATE_YEAR = { B:"2000–2002", C:"2002–2004", D:"2004–2006", F:"2006–2007", G:"2007–2009", H:"2009–2013", J:"2013–2016", K:"2016–2018", L:"2018–2021", M:"2021–2023", N:"2023–2025", P:"2025–2026" };
+const OLD_PROV = { A:"Alicante",AB:"Albacete",AL:"Almería",AV:"Ávila",B:"Barcelona",BA:"Badajoz",BI:"Bizkaia",BU:"Burgos",C:"A Coruña",CA:"Cádiz",CC:"Cáceres",CE:"Ceuta",CO:"Córdoba",CR:"Ciudad Real",CS:"Castellón",CU:"Cuenca",GC:"Las Palmas",GE:"Girona",GI:"Girona",GR:"Granada",GU:"Guadalajara",H:"Huelva",HU:"Huesca",IB:"Baleares",J:"Jaén",L:"Lleida",LE:"León",LO:"La Rioja",LU:"Lugo",M:"Madrid",MA:"Málaga",ML:"Melilla",MU:"Murcia",NA:"Navarra",O:"Asturias",OR:"Ourense",OU:"Ourense",P:"Palencia",PM:"Baleares",PO:"Pontevedra",S:"Cantabria",SA:"Salamanca",SE:"Sevilla",SG:"Segovia",SO:"Soria",SS:"Gipuzkoa",T:"Tarragona",TE:"Teruel",TF:"S.C. Tenerife",TO:"Toledo",V:"Valencia",VA:"Valladolid",VI:"Álava",Z:"Zaragoza",ZA:"Zamora" };
+const CIF_TYPE = { A:"Sociedad anónima",B:"Sociedad limitada",C:"Sociedad colectiva",D:"Sociedad comanditaria",E:"Comunidad de bienes",F:"Cooperativa",G:"Asociación / fundación",H:"Comunidad de propietarios",J:"Sociedad civil",N:"Entidad extranjera",P:"Corporación local",Q:"Organismo público",R:"Congregación religiosa",S:"Órgano de la Administración",U:"UTE",V:"Otros tipos",W:"Establecimiento permanente de no residente" };
+const PROV_INE = ["","Álava","Albacete","Alicante","Almería","Ávila","Badajoz","Baleares","Barcelona","Burgos","Cáceres","Cádiz","Castellón","Ciudad Real","Córdoba","A Coruña","Cuenca","Girona","Granada","Guadalajara","Gipuzkoa","Huelva","Huesca","Jaén","León","Lleida","La Rioja","Lugo","Madrid","Málaga","Murcia","Navarra","Ourense","Asturias","Palencia","Las Palmas","Pontevedra","Salamanca","S.C. Tenerife","Cantabria","Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo","Valencia","Valladolid","Bizkaia","Zamora","Zaragoza","Ceuta","Melilla"];
+const AUT_TYPE = { MDP:"Mercancías · servicio público · pesados", MDL:"Mercancías · servicio público · ligeros", MPC:"Mercancías · privado complementario", VD:"Viajeros · discrecional", VDE:"Viajeros · discrecional", VPC:"Viajeros · privado complementario", VTC:"Arrendamiento de vehículos con conductor", OT:"Operador de transporte" };
+
+/* ---------- Normalización y análisis ---------- */
+function normalize(k, v){
+  v = String(v || "").trim();
+  if (k === "matricula" || k === "nif") return v.toUpperCase().replace(/[\s\-·.\/]/g, "");
+  if (k === "autorizacion") return v.toUpperCase().replace(/\s+/g, "");
+  if (k === "dominio") { v = v.toLowerCase(); if (v.includes("@")) v = v.split("@").pop(); return v.replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/[\/?#].*$/, ""); }
+  if (k === "telefono") return v.replace(/[^\d+]/g, "");
+  return v.replace(/\s+/g, " ");
+}
+function getFields(){ return Object.fromEntries(FIELD_IDS.map(k => [k, normalize(k, F[k].value)])); }
+
+function analyzePlate(p){
+  const L = "[" + PLATE_LETTERS + "]";
+  if (!p) return null;
+  let m;
+  if ((m = p.match(new RegExp("^(\\d{4})(" + L + "{3})$")))) {
+    const y = PLATE_YEAR[m[2][0]];
+    return { fmt:m[1]+" "+m[2], chips:[["ok","Ordinaria nacional (desde 09/2000)"], y ? ["warn","Matriculación aprox. "+y] : ["bad","Serie fuera de rango conocido"]] };
+  }
+  if ((m = p.match(new RegExp("^([REHPSV])(\\d{4})(" + L + "{3})$")))) {
+    const t = { R:"Remolque / semirremolque", E:"Vehículo especial", H:"Histórico", P:"Temporal (particular)", S:"Temporal (empresa)", V:"Temporal (empresa, vehículo nuevo)" }[m[1]];
+    const chips = [["ok", t]];
+    if (m[1] === "R") chips.push(["warn","Los semirremolques no suelen figurar adscritos en REAT: pivote por la tractora"]);
+    if ("PSV".includes(m[1])) chips.push(["warn","Placa temporal: titular probable concesionario o empresa"]);
+    return { fmt:m[1]+" "+m[2]+" "+m[3], chips };
+  }
+  if ((m = p.match(/^([A-Z]{1,2})(\d{4})([A-Z]{0,2})$/)) && OLD_PROV[m[1]]) {
+    return { fmt:[m[1],m[2],m[3]].filter(Boolean).join(" "), chips:[["ok","Provincial antigua (anterior a 09/2000)"],["warn","Provincia: "+OLD_PROV[m[1]]]] };
+  }
+  return { fmt:p, chips:[["bad","Formato no español o no reconocido"],["warn","Si es extranjera: REAT no la contiene; vía licencia comunitaria / ERRU por canal institucional"]] };
+}
+function analyzeNif(v){
+  if (!v) return null;
+  let m;
+  if ((m = v.match(/^(\d{8})([A-Z])$/))) {
+    const ok = "TRWAGMYFPDXBNJZSQVHLCKE"[+m[1] % 23] === m[2];
+    return ok ? ["ok","DNI válido · persona física (autónomo). Minimice datos personales."] : ["bad","DNI con letra de control incorrecta"];
+  }
+  if ((m = v.match(/^([XYZ])(\d{7})([A-Z])$/))) {
+    const n = +("XYZ".indexOf(m[1]) + m[2]);
+    return "TRWAGMYFPDXBNJZSQVHLCKE"[n % 23] === m[3] ? ["ok","NIE válido · persona física extranjera"] : ["bad","NIE con letra de control incorrecta"];
+  }
+  if ((m = v.match(/^([ABCDEFGHJNPQRSUVW])(\d{7})([0-9A-J])$/))) {
+    const d = m[2]; let sum = 0;
+    for (let i = 0; i < 7; i++){ const n = +d[i]; if (i % 2 === 0){ const x = n * 2; sum += Math.floor(x / 10) + (x % 10); } else sum += n; }
+    const c = (10 - sum % 10) % 10, cl = "JABCDEFGHI"[c], last = m[3], first = m[1];
+    let ok;
+    if ("PQRSNW".includes(first) || d.startsWith("00")) ok = last === cl;
+    else if ("ABEH".includes(first)) ok = last === String(c);
+    else ok = last === String(c) || last === cl;
+    const prov = PROV_INE[+d.slice(0, 2)] || "código ampliado";
+    return ok ? ["ok", "CIF válido · " + CIF_TYPE[first] + " · provincia de alta: " + prov + " (orientativo)"] : ["bad","CIF con dígito de control incorrecto (¿error de transcripción?)"];
+  }
+  return ["warn","Formato no reconocido (¿NIF extranjero? Pruebe VIES con el prefijo del país)"];
+}
+function analyzeAut(v){
+  if (!v) return null;
+  const m = v.match(/^([A-Z]{2,3})/);
+  const t = m && (AUT_TYPE[m[1]] || AUT_TYPE[m[1].slice(0,2)]);
+  return t ? ["ok", t + " (orientativo)"] : ["warn","Prefijo no reconocido; confirme en REAT"];
+}
+function phoneVariants(t){
+  let d = t.replace(/^\+34|^0034/, "");
+  if (/^\d{9}$/.test(d)) return [d, d.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3"), d.replace(/(\d{3})(\d{2})(\d{2})(\d{2})/, "$1 $2 $3 $4"), "+34" + d];
+  return t ? [t] : [];
+}
+
+/* ---------- Estado ---------- */
+function emptyState(){ return { version:3, fields:{}, entries:[], trace:[] }; }
+const keyOf = ref => PREFIX + ((ref || "").trim() || "sin-referencia");
+function migrate(){
+  try {
+    const olds = [];
+    for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.startsWith(OLD_PREFIX)) olds.push(k); }
+    olds.forEach(k => { const nk = PREFIX + k.slice(OLD_PREFIX.length); if (!localStorage.getItem(nk)) localStorage.setItem(nk, localStorage.getItem(k)); });
+  } catch(e){}
+}
+function loadState(ref){
+  try {
+    const d = JSON.parse(localStorage.getItem(keyOf(ref)) || "null");
+    if (!d || typeof d !== "object") return emptyState();
+    return { version:3, fields: d.fields && typeof d.fields === "object" ? d.fields : {}, entries: Array.isArray(d.entries) ? d.entries : [], trace: Array.isArray(d.trace) ? d.trace : [] };
+  } catch(e){ return emptyState(); }
+}
+let activeRef = "", state = emptyState(), pendingEvidence = null;
+function save(){
+  try { localStorage.setItem(keyOf(activeRef), JSON.stringify(state)); return true; }
+  catch(e){ toast("No se pudo guardar: almacenamiento lleno o bloqueado."); return false; }
+}
+function addTrace(action, target, query){
+  state.trace.push({ ts:Date.now(), action, target, query: query || "" });
+  if (state.trace.length > 800) state.trace = state.trace.slice(-800);
+  save(); renderTrace(); renderChain();
+}
+
+/* ---------- Utilidades ---------- */
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2600); }
+const fmtTime = ts => { const d = new Date(ts); return isNaN(d) ? "—" : new Intl.DateTimeFormat("es-ES", { dateStyle:"short", timeStyle:"medium" }).format(d); };
+const iso = ts => { const d = new Date(ts); return isNaN(d) ? "—" : d.toISOString(); };
+function copyNow(text){
+  if (!text) return;
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).catch(() => legacyCopy(text)); }
+  else legacyCopy(text);
+}
+function legacyCopy(text){
+  const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.append(ta); ta.select(); try { document.execCommand("copy"); } catch(e){} ta.remove();
+}
+async function sha256(data){
+  if (!(window.crypto && crypto.subtle)) return null;
+  const buf = typeof data === "string" ? new TextEncoder().encode(data) : data;
+  const h = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const safeUrl = v => { try { const u = new URL(String(v || "")); return /^https?:$/.test(u.protocol) ? u.href : ""; } catch(e){ return ""; } };
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function download(data, name, type){ const url = URL.createObjectURL(new Blob([data], { type })); const a = document.createElement("a"); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500); }
+const fileBase = () => "rastro-carrier_" + ((caseRef.value || "expediente").trim().replace(/[^\p{L}\p{N}_.-]+/gu, "_") || "expediente");
+
+/* ---------- Render: identificadores y matrícula ---------- */
+function setV(id, r){ const e = $(id); if (!e) return; e.className = "v" + (r ? " " + r[0] : ""); e.textContent = r ? r[1] : ""; }
+function renderAnalysis(){
+  const f = getFields();
+  const chips = $("plateChips"); chips.replaceChildren();
+  const pa = analyzePlate(f.matricula);
+  if (pa) { chips.append(el("span", "chip", pa.fmt)); pa.chips.forEach(c => chips.append(el("span", "chip " + c[0], c[1]))); }
+  else chips.append(el("span", "chip", "Introduzca la matrícula"));
+  setV("vNif", analyzeNif(f.nif));
+  setV("vAut", analyzeAut(f.autorizacion));
+  setV("vNombre", f.nombre && /\b(S\.?\s?L|S\.?\s?A)\b/i.test(f.nombre) && f.nif && /^[A-Z]/.test(f.nif) && !/^[XYZ]/.test(f.nif) && ((/S\.?\s?L/i.test(f.nombre) && f.nif[0] !== "B") || (/S\.?\s?A\b/i.test(f.nombre) && f.nif[0] !== "A")) ? ["warn","La forma jurídica no casa con la letra del CIF: verifique"] : null);
+  setV("vDom", f.dominio ? ["ok","Dominio normalizado: " + f.dominio] : null);
+  const pv = phoneVariants(f.telefono);
+  setV("vTel", pv.length > 1 ? ["ok","Variantes: " + pv.join(" · ")] : null);
+  $("reatGo").setAttribute("aria-disabled", f.matricula ? "false" : "true");
+}
+
+/* ---------- Render: fuentes ---------- */
+function sourceValue(s, f){
+  for (const k of s.by) if (f[k]) return (k === "nif" && s.prefix ? s.prefix : "") + f[k];
+  return "";
+}
+function renderSources(){
+  const box = $("sources"); box.replaceChildren();
+  const f = getFields();
+  SOURCES.forEach(s => {
+    const card = el("div", "card" + (s.primary ? " primary-src" : ""));
+    const head = el("div", "card-head"); head.append(el("h3", null, s.name), el("span", "badge " + s.badge[0], s.badge[1])); card.append(head);
+    card.append(el("p", null, s.desc));
+    const labels = { matricula:"matrícula", autorizacion:"autorización", nif:"NIF", nombre:"razón social", persona:"persona" };
+    card.append(el("span", "meta", s.searchLabel || ("Busca por: " + s.by.map(k => labels[k] || k).join(" · "))));
+    const val = sourceValue(s, f);
+    if (s.searchLabel) card.append(el("p", "hint", s.searchLabel + " · la búsqueda por sociedad no se realiza automáticamente."));
+    if (s.id === "REAT") card.append(el("p", "hint", reatHint(f)));
+    else if (val) card.append(el("p", "hint", "Se copiará: " + val));
+    const act = el("div", "actions");
+    const a = el("a", "btn", val ? "Copiar y abrir →" : "Abrir →");
+    a.href = s.dyn ? s.dyn(f) : s.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.addEventListener("click", () => { const v = sourceValue(s, getFields()); if (v) { copyNow(v); toast("Copiado: " + v); } addTrace("apertura", s.id, v); });
+    act.append(a);
+    const reg = el("button", "btn ghost sm", "Registrar resultado"); reg.type = "button";
+    reg.addEventListener("click", () => { $("entrySource").value = s.id; $("entryUrl").value = ""; $("entryText").focus(); $("cuaderno").scrollIntoView({ behavior:"smooth" }); });
+    act.append(reg);
+    card.append(act); box.append(card);
+  });
+}
+function reatHint(f){
+  if (f.matricula) return "Vehículos · por matrícula (" + f.matricula + ")";
+  if (f.autorizacion) return "Autorizaciones · por nº (" + f.autorizacion + ")";
+  if (f.nif) return "Autorizaciones · por NIF (" + f.nif + "). Consulte también competencia profesional.";
+  if (f.nombre) return "Autorizaciones · por nombre (" + f.nombre + ")";
+  return "Introduzca un dato para ver la consulta sugerida.";
+}
+
+/* ---------- Render: cadena ---------- */
+function renderChain(){
+  const box = $("chain"); box.replaceChildren();
+  const done = new Set(state.entries.map(e => srcNode(e.source)).filter(Boolean));
+  const opened = new Set(state.trace.map(t => srcNode(t.target) || (t.action === "búsqueda" ? "huella" : null)).filter(Boolean));
+  const f = getFields();
+  if (f.matricula) opened.add("vehiculo");
+  NODES.forEach((n, i) => {
+    if (i) box.append(el("span", "arrow", "→"));
+    const d = el("div", "node" + (done.has(n.id) ? " done" : opened.has(n.id) ? " open" : ""));
+    d.append(document.createTextNode((done.has(n.id) ? "✓ " : "") + n.label), el("small", null, n.sub));
+    box.append(d);
+  });
+}
+
+/* ---------- Render: dorks ---------- */
+const ENGINES = {
+  google:{ web:"https://www.google.com/search?q=", img:"https://www.google.com/search?tbm=isch&q=" },
+  bing:{ web:"https://www.bing.com/search?q=", img:"https://www.bing.com/images/search?q=" },
+  ddg:{ web:"https://duckduckgo.com/?q=", img:"https://duckduckgo.com/?iax=images&ia=images&q=" }
+};
+function buildDorks(f){
+  const G = [];
+  const q = (label, query, kind) => ({ label, query, kind: kind || "web" });
+  const u = (label, url, shown) => ({ label, url, query: shown || url, kind:"url" });
+  if (f.matricula) {
+    const pa = analyzePlate(f.matricula), s = pa.fmt, h = s.replace(/ /g, "-"), m = f.matricula;
+    const any = `"${m}" OR "${s}" OR "${h}"`;
+    G.push({ title:"Matrícula", items:[
+      q("Menciones exactas en la web", any),
+      q("Fotografías del vehículo (spotting, siniestros, anuncios)", any, "img"),
+      q("Anuncios de compraventa del vehículo", `("${s}" OR "${m}") (site:milanuncios.com OR site:wallapop.com OR site:mascus.es OR site:europa-camiones.com OR site:truck1.eu)`),
+      q("Edictos, sanciones y boletines", `("${s}" OR "${m}") (edicto OR sanción OR "boletín oficial")`),
+      q("Vídeo (dashcam, incidentes)", `("${s}" OR "${m}") (site:youtube.com OR site:tiktok.com)`)
+    ]});
+  }
+  if (f.nombre) {
+    const n = f.nombre;
+    G.push({ title:"Titular / razón social", items:[
+      q("Actos societarios y edictos (BOE/BORME)", `"${n}" site:boe.es`),
+      q("Administradores, apoderados, socio único", `"${n}" (administrador OR "administrador único" OR apoderado OR "socio único")`),
+      q("Fichas en agregadores mercantiles", `"${n}" (site:infocif.es OR site:einforma.com OR site:empresia.es OR site:axesor.es OR site:infoempresa.com)`),
+      q("Flota y rotulación (imágenes)", `"${n}" (camión OR tráiler OR flota OR transportes)`, "img"),
+      q("Plantilla y directivos (LinkedIn)", `"${n}" site:linkedin.com`),
+      q("Redes sociales", `"${n}" (site:facebook.com OR site:instagram.com OR site:tiktok.com OR site:x.com)`),
+      q("Ofertas de empleo (rutas, bases, flota)", `"${n}" (conductor OR chófer) (oferta OR empleo)`),
+      q("Reseñas y quejas", `"${n}" (opiniones OR reseñas OR estafa OR denuncia)`),
+      u("Instalaciones / campa (Maps; revise Street View histórico)", "https://www.google.com/maps/search/" + enc(n), "maps: " + n)
+    ]});
+  }
+  if (f.nif) {
+    G.push({ title:"NIF / CIF", items:[
+      q("Apariciones del NIF en la web", `"${f.nif}"`),
+      q("NIF en documentos PDF (adjudicaciones, actas, edictos)", `"${f.nif}" filetype:pdf`),
+      q("NIF en sedes y boletines oficiales", `"${f.nif}" (site:boe.es OR site:gob.es OR site:es "boletín oficial")`)
+    ]});
+  }
+  if (f.autorizacion) G.push({ title:"Autorización", items:[ q("Menciones del nº de autorización", `"${f.autorizacion}"`) ]});
+  if (f.persona) {
+    const p = f.persona;
+    G.push({ title:"Persona vinculada", items:[
+      q("Cargos en otras sociedades (BORME)", `"${p}" site:boe.es`),
+      q("Cargos societarios en agregadores", `"${p}" (administrador OR apoderado) (site:infocif.es OR site:empresia.es OR site:einforma.com)`),
+      q("Perfil profesional", `"${p}" (site:linkedin.com OR transportes OR logística)`)
+    ]});
+  }
+  if (f.domicilio) {
+    const d = f.domicilio;
+    G.push({ title:"Domicilio", items:[
+      u("Ubicación y Street View", "https://www.google.com/maps/search/" + enc(d), "maps: " + d),
+      q("Otras sociedades en el mismo domicilio (pista para contrastar posibles coincidencias)", `"${d}" (S.L. OR S.A. OR transportes OR logística)`),
+      q("Domicilio en boletines oficiales", `"${d}" site:boe.es`)
+    ]});
+  }
+  if (f.dominio) {
+    const d = f.dominio;
+    G.push({ title:"Dominio web", items:[
+      q("Páginas indexadas del dominio", `site:${d}`),
+      q("Menciones externas del dominio", `"${d}" -site:${d}`),
+      u("Certificados TLS y subdominios (crt.sh)", "https://crt.sh/?q=" + enc("%." + d)),
+      u("Histórico web (Wayback Machine)", "https://web.archive.org/web/*/" + d + "/*"),
+      u("Registro del dominio (ICANN RDAP)", "https://lookup.icann.org/en/lookup?name=" + enc(d)),
+      u("Escaneos y recursos (urlscan.io)", "https://urlscan.io/search/#domain:" + enc(d))
+    ]});
+  }
+  if (f.telefono) {
+    const v = phoneVariants(f.telefono);
+    G.push({ title:"Teléfono", items:[
+      q("Apariciones del teléfono", v.map(x => `"${x}"`).join(" OR ")),
+      q("Teléfono en anuncios", `(${v.map(x => `"${x}"`).join(" OR ")}) (site:milanuncios.com OR site:wallapop.com OR site:mascus.es)`)
+    ]});
+  }
+  return G;
+}
+function renderDorks(){
+  const box = $("dorks"); box.replaceChildren();
+  const eng = ENGINES[$("engine").value] || ENGINES.google;
+  const G = buildDorks(getFields());
+  $("dorksEmpty").style.display = G.length ? "none" : "block";
+  G.forEach(g => {
+    const d = el("div", "dgroup"); d.append(el("h3", null, g.title));
+    g.items.forEach(it => {
+      const row = el("div", "dork");
+      const a = el("a"); a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.href = it.kind === "url" ? it.url : (it.kind === "img" ? eng.img : eng.web) + enc(it.query);
+      a.append(el("span", "dl", it.label + (it.kind === "img" ? " ▣" : "") + " ↗"), el("code", null, it.query));
+      a.addEventListener("click", () => addTrace("búsqueda", g.title + " · " + it.label, it.query));
+      const c = el("button", "btn ghost sm", "copiar"); c.type = "button";
+      c.addEventListener("click", () => { copyNow(it.query); toast("Consulta copiada."); });
+      row.append(a, c); d.append(row);
+    });
+    box.append(d);
+  });
+}
+
+/* ---------- Render: cuaderno ---------- */
+function renderSourceSelect(){
+  const s = $("entrySource"), cur = s.value; s.replaceChildren();
+  [...SOURCES.map(x => x.id), ...EXTRA_SOURCES].forEach(v => s.add(new Option(v, v)));
+  if (cur) s.value = cur;
+}
+function renderEntries(){
+  const list = $("entriesList"); list.replaceChildren();
+  const E = state.entries.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  $("emptyNote").style.display = E.length ? "none" : "block";
+  E.forEach(e => {
+    const art = el("article", "entry" + (e.key ? " key" : ""));
+    const head = el("div", "entry-head");
+    const left = el("span"); left.append(el("span", "src", (e.key ? "★ " : "") + (e.source || "Otra fuente")), document.createTextNode(" · " + fmtTime(e.ts)));
+    const actions = el("span", "entry-actions");
+    const edit = el("button", "linkbtn", "editar"); edit.type = "button";
+    edit.addEventListener("click", () => { const next = prompt("Editar el apunte (se conserva la fecha original):", String(e.text || "")); if (next === null) return; if (!next.trim()) return toast("El apunte no puede quedar vacío."); e.revisions = Array.isArray(e.revisions) ? e.revisions : []; e.revisions.push({ text:String(e.text || ""), savedAt:Date.now() }); e.text = next.trim(); save(); renderEntries(); toast("Apunte actualizado; se conserva la versión anterior."); });
+    const del = el("button", "linkbtn", "eliminar"); del.type = "button";
+    del.addEventListener("click", () => { if (!confirm("¿Eliminar este apunte?")) return; state.entries = state.entries.filter(x => x.id !== e.id); save(); renderEntries(); renderChain(); });
+    actions.append(edit, del); head.append(left, actions); art.append(head, el("p", null, String(e.text || "")));
+    if (e.query) art.append(el("div", "meta", "Dato consultado: " + e.query));
+    if (e.evidence) art.append(el("div", "meta", "Captura: " + e.evidence.name + " · " + e.evidence.size + " B · SHA-256 " + e.evidence.sha256));
+    const su = safeUrl(e.url); if (su) { const a = el("a", null, su); a.href = su; a.target = "_blank"; a.rel = "noopener noreferrer"; art.append(a); }
+    list.append(art);
+  });
+}
+function renderTrace(){
+  const ul = $("traceList"); ul.replaceChildren();
+  $("traceCount").textContent = state.trace.length;
+  state.trace.slice().reverse().forEach(t => ul.append(el("li", null, fmtTime(t.ts) + " · " + t.action + " · " + t.target + (t.query ? " · " + t.query : ""))));
+}
+function renderCasePicker(){
+  const sel = $("casePicker"), refs = [];
+  try { for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.startsWith(PREFIX)) refs.push(k.slice(PREFIX.length)); } } catch(e){}
+  sel.replaceChildren(new Option("Guardados…", ""));
+  [...new Set(refs)].sort((a, b) => a.localeCompare(b, "es")).forEach(r => sel.add(new Option(r, r)));
+  sel.value = refs.includes(activeRef.trim()) ? activeRef.trim() : "";
+}
+function renderAll(){ renderAnalysis(); renderSources(); renderChain(); renderDorks(); renderEntries(); renderTrace(); renderCasePicker(); }
+function restoreFields(){ FIELD_IDS.forEach(k => F[k].value = state.fields[k] || ""); }
+function switchCase(ref){ save(); activeRef = (ref || "").trim(); caseRef.value = activeRef; state = loadState(activeRef); pendingEvidence = null; $("evInfo").textContent = ""; restoreFields(); renderAll(); }
+
+/* ---------- Informe ---------- */
+function reportText(){
+  const f = state.fields, ref = (caseRef.value || "").trim() || "sin referencia", out = [];
+  out.push("RASTRO CARRIER — INFORME DE CONSULTAS EN FUENTES ABIERTAS", "Expediente: " + ref, "Generado: " + fmtTime(Date.now()) + " (" + iso(Date.now()) + ")", "", "IDENTIFICADORES");
+  [["Matrícula", f.matricula], ["NIF/CIF/NIE", f.nif], ["Nombre / razón social", f.nombre], ["Autorización", f.autorizacion], ["Persona vinculada", f.persona], ["Domicilio", f.domicilio], ["Dominio", f.dominio], ["Teléfono", f.telefono]]
+    .forEach(([k, v]) => out.push("  " + k + ": " + (v || "—")));
+  const pa = analyzePlate(f.matricula || ""); if (pa) out.push("  Análisis matrícula: " + pa.chips.map(c => c[1]).join("; "));
+  const na = analyzeNif(f.nif || ""); if (na) out.push("  Análisis NIF: " + na[1]);
+  out.push("", "APUNTES");
+  const E = state.entries.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (!E.length) out.push("  (sin apuntes)");
+  E.forEach((e, i) => {
+    out.push("", `[${i + 1}]${e.key ? " ★ HALLAZGO CLAVE" : ""} ${e.source || "Otra fuente"} — ${fmtTime(e.ts)} (${iso(e.ts)})`, "  Dato consultado: " + (e.query || "—"), "  URL: " + (e.url || "—"));
+    if (e.evidence) out.push("  Captura: " + e.evidence.name + " · " + e.evidence.size + " B · SHA-256 " + e.evidence.sha256);
+    out.push(String(e.text || "").split("\n").map(x => "  " + x).join("\n"));
+  });
+  out.push("", "HISTORIAL DE EDICIÓN DE APUNTES");
+  const edited = E.filter(e => Array.isArray(e.revisions) && e.revisions.length);
+  if (edited.length) edited.forEach(e => {
+    out.push("  Apunte " + e.id + " · " + (e.source || "Otra fuente") + " · fecha original: " + iso(e.ts));
+    e.revisions.forEach((r, i) => out.push("    Versión anterior " + (i + 1) + " guardada el " + iso(r.savedAt) + ": " + String(r.text || "").replace(/\n/g, "\n      ")));
+  });
+  else out.push("  Sin modificaciones registradas.");
+  out.push("", "TRAZA DE CONSULTAS (aperturas y búsquedas lanzadas desde la herramienta)");
+  if (!state.trace.length) out.push("  (sin traza)");
+  state.trace.forEach(t => out.push("  " + iso(t.ts) + " · " + t.action + " · " + t.target + (t.query ? " · " + t.query : "")));
+  out.push("", "Consultas realizadas manualmente por el investigador en fuentes abiertas. Este informe es un resumen de trabajo: no sustituye la conservación de evidencias originales ni certifica el contenido de los portales. Las estimaciones son orientativas.");
+  return out.join("\n");
+}
+function reportHtml(){
+  const txt = reportText();
+  return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Rastro Carrier · ${esc(caseRef.value || "")}</title><style>body{font:14px/1.5 ui-monospace,monospace;max-width:900px;margin:2rem auto;padding:0 1rem;color:#222}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><pre>${esc(txt)}</pre></html>`;
+}
+async function exportWithHash(content, ext, type){
+  const name = fileBase() + "_" + new Date().toISOString().replace(/[:.]/g, "-") + "." + ext;
+  download(content, name, type);
+  const h = await sha256(content);
+  $("exportHash").textContent = h ? "SHA-256 de " + name + ": " + h : "Exportado " + name + " (hash no disponible en este contexto).";
+  addTrace("exportación", name, h ? "sha256 " + h : "");
+}
+
+/* ---------- Extracción del resultado de REAT ---------- */
+function parseReat(t){
+  const out = { nif:"", aut:"", titular:"" };
+  const clean = String(t || "").replace(/\u00a0/g, " ").replace(/\r\n?/g, "\n");
+  const lines = clean.split("\n").map(s => s.trim()).filter(Boolean);
+  const up = clean.toUpperCase();
+
+  // NIF/CIF/NIE can arrive with spaces when REAT copies table cells.
+  const idRe = /(^|[^A-Z0-9])([ABCDEFGHJNPQRSUVW](?:\s*\d){7}\s*[0-9A-J]|(?:\d\s*){8}[A-Z]|[XYZ](?:\s*\d){7}\s*[A-Z])(?=$|[^A-Z0-9])/i;
+  const im = clean.match(idRe);
+  if (im) out.nif = im[2].replace(/\s+/g, "").toUpperCase();
+
+  const authPrefix = "(MDP|MDL|MPC|VDE|VPC|VTC|VD|OT)";
+  const findAuth = text => {
+    const m = String(text || "").toUpperCase().match(new RegExp("\\b" + authPrefix + "\\s*(?:[/-]\\s*)?(\\d{1,10})\\b"));
+    return m ? m[1] + m[2] : "";
+  };
+  for (let i = 0; i < lines.length && !out.aut; i++) {
+    if (!/autoriz|licencia/i.test(lines[i])) continue;
+    out.aut = findAuth(lines.slice(i, i + 4).join(" "));
+    if (!out.aut) {
+      const prefixLine = lines.slice(i, i + 3).join(" ").toUpperCase().match(new RegExp("\\b" + authPrefix + "\\b"));
+      const numberLine = lines.slice(i, i + 5).map(x => {
+        const m = x.match(/^\s*(?:(?:n(?:ú?mero|[º°]|\.?º?\.?|ro)|num(?:ero)?|c[oó]digo)(?:\s+(?:de\s+)?autorizaci[oó]n)?\s*[:=\t-]?\s*)?(\d{1,10})\s*$/i);
+        return m ? m[1] : "";
+      }).find(Boolean);
+      if (prefixLine && numberLine) out.aut = prefixLine[1] + numberLine;
+    }
+  }
+  if (!out.aut) out.aut = findAuth(up);
+
+  const normalizeLabel = value => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const labelRe = /^(?:titular(?:\s+de\s+(?:(?:la|el)\s+)?autorizacion(?:\s+de\s+transporte)?)?|nombre(?:\s+(?:del?\s+)?titular)?|razon\s+social|denominacion(?:\s+social)?|empresa)\s*(?::|=|\t|\s+-\s+)?\s*(.*)$/i;
+  const isAnotherLabel = value => /^(?:nif|cif|nie|identificacion fiscal|autorizacion|licencia|matricula|vehiculo|domicilio)\b/i.test(normalizeLabel(value));
+  for (let i = 0; i < lines.length && !out.titular; i++) {
+    const sourceLine = lines[i];
+    const line = normalizeLabel(sourceLine);
+    const m = line.match(labelRe);
+    if (!m) continue;
+    if (/^empresa\s+\S/i.test(line) && !/^empresa\s*[:=\t]/i.test(line)) continue;
+    // Use the normalized match only to locate the label; preserve the original
+    // case and accents from the text copied from the portal.
+    const labelLength = m[0].length - (m[1] || "").length;
+    let value = sourceLine.slice(labelLength).trim().replace(/^[:=\t-]+\s*/, "");
+    if (!value || isAnotherLabel(value)) {
+      for (let j = i + 1; j < Math.min(lines.length, i + 4); j++) {
+        const candidate = lines[j].trim();
+        if (isAnotherLabel(candidate) || labelRe.test(normalizeLabel(candidate))) continue;
+        if (/^(?:n[º°.]?\s*)?\d[\d\s./-]*$/.test(candidate)) continue;
+        value = candidate; break;
+      }
+    }
+    if (value && !isAnotherLabel(value)) out.titular = value.replace(/\s{2,}/g, " ").slice(0, 180);
+  }
+  if (!out.titular) {
+    const candidate = lines.find(x => /\b(?:S\.?\s?L\.?U?\.?|S\.?\s?A\.?U?\.?|SOCIEDAD|COOPERATIVA|TRANSPORTES)\b/i.test(x)
+      && !/^(?:titular|nombre|razon social|denominacion|empresa)\b/i.test(normalizeLabel(x)));
+    if (candidate) out.titular = candidate.slice(0, 180);
+  }
+  return out;
+}
+
+/* ---------- Eventos ---------- */
+FIELD_IDS.forEach(k => F[k].addEventListener("input", () => {
+  state.fields = getFields(); save();
+  renderAnalysis(); renderSources(); renderChain(); renderDorks();
+}));
+$("reatGo").addEventListener("click", e => {
+  const m = getFields().matricula;
+  if (!m) { e.preventDefault(); toast("Introduzca primero la matrícula."); F.matricula.focus(); return; }
+  copyNow(m); toast("Matrícula " + m + " copiada. Péguela en REAT.");
+  addTrace("apertura", "REAT", m);
+});
+$("reatGo").href = SOURCES[0].url;
+$("parseBtn").addEventListener("click", () => {
+  const t = $("reatPaste").value.trim(); if (!t) return toast("Pegue primero el resultado de REAT.");
+  const r = parseReat(t);
+  $("pTitular").value = r.titular; $("pNif").value = r.nif; $("pAut").value = r.aut;
+  $("parsed").classList.add("show");
+  toast(r.nif || r.aut || r.titular ? "Datos extraídos: revíselos." : "No se reconocieron datos: complételos a mano.");
+});
+$("applyParsed").addEventListener("click", () => {
+  const tit = $("pTitular").value.trim(), nif = $("pNif").value.trim(), aut = $("pAut").value.trim();
+  if (!tit && !nif && !aut) return toast("No hay datos que volcar.");
+  if (tit) F.nombre.value = tit; if (nif) F.nif.value = nif; if (aut) F.autorizacion.value = aut;
+  state.fields = getFields();
+  const raw = $("reatPaste").value.trim();
+  state.entries.push({ id: newId(), source:"REAT", key:true, ts:Date.now(), query: state.fields.matricula || "", url: SOURCES[0].url,
+    text: "Consulta por matrícula " + (state.fields.matricula || "—") + ".\nTitular: " + (tit || "—") + "\nNIF/CIF: " + (nif || "—") + "\nAutorización: " + (aut || "—") + "\n\n— Texto original pegado —\n" + raw.slice(0, 5000) });
+  save(); $("reatPaste").value = ""; $("parsed").classList.remove("show");
+  renderAll(); toast("Volcado al expediente. Continúe por la cadena de pivotes.");
+  $("cadena").scrollIntoView({ behavior:"smooth" });
+});
+$("copyAllBtn").addEventListener("click", () => {
+  const f = getFields(), names = { matricula:"Matrícula", nif:"NIF", nombre:"Titular", autorizacion:"Autorización", persona:"Persona", domicilio:"Domicilio", dominio:"Dominio", telefono:"Teléfono" };
+  const t = FIELD_IDS.filter(k => f[k]).map(k => names[k] + ": " + f[k]).join("\n");
+  if (!t) return toast("No hay identificadores."); copyNow(t); toast("Identificadores copiados.");
+});
+$("engine").addEventListener("change", () => { try { localStorage.setItem(PREFIX + "__engine", $("engine").value); } catch(e){} renderDorks(); });
+$("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement, next = root.dataset.theme === "dark" ? "light" : "dark";
+  root.dataset.theme = next;
+  try { localStorage.setItem(PREFIX + "__theme", next); } catch(e){}
+  $("themeBtn").textContent = next === "dark" ? "☼ Tema claro" : "☾ Tema oscuro";
+});
+
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2));
+$("evBtn").addEventListener("click", () => $("evFile").click());
+$("evFile").addEventListener("change", async e => {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  if (file.size > 100 * 1024 * 1024) { $("evInfo").textContent = "Archivo superior a 100 MB: no se calcula el hash en el navegador."; e.target.value = ""; return; }
+  $("evInfo").textContent = "Calculando…";
+  try {
+    const h = await sha256(await file.arrayBuffer());
+    if (!h) { $("evInfo").textContent = "Hash no disponible en este contexto."; return; }
+    pendingEvidence = { name:file.name, size:file.size, sha256:h, lastModified: file.lastModified ? iso(file.lastModified) : "" };
+    $("evInfo").textContent = file.name + " · SHA-256 " + h.slice(0, 16) + "…";
+  } catch(err){ $("evInfo").textContent = "No se pudo leer el archivo."; }
+  finally { e.target.value = ""; }
+});
+$("addEntry").addEventListener("click", () => {
+  const text = $("entryText").value.trim(); if (!text) return toast("Describa el resultado antes de registrarlo.");
+  const url = $("entryUrl").value.trim(); if (url && !safeUrl(url)) return toast("La URL debe empezar por http:// o https://.");
+  const f = getFields(), src = $("entrySource").value, s = SOURCES.find(x => x.id === src);
+  state.entries.push({ id:newId(), source:src, key:$("entryKey").checked, text, ts:Date.now(), url,
+    query: s ? sourceValue(s, f) : (f.matricula || f.nif || f.nombre || ""), evidence: pendingEvidence || undefined });
+  pendingEvidence = null; save();
+  $("entryText").value = ""; $("entryUrl").value = ""; $("entryKey").checked = false; $("evInfo").textContent = "";
+  renderEntries(); renderChain(); renderCasePicker(); toast("Apunte registrado.");
+});
+
+caseRef.addEventListener("change", () => switchCase(caseRef.value));
+$("casePicker").addEventListener("change", e => { if (e.target.value) switchCase(e.target.value); });
+$("newCaseBtn").addEventListener("click", () => { const r = prompt("Referencia del nuevo expediente:"); if (r === null || !r.trim()) return; switchCase(r); save(); renderCasePicker(); });
+$("deleteCaseBtn").addEventListener("click", () => {
+  const r = activeRef || "sin-referencia";
+  if (!confirm("¿Eliminar del navegador el expediente «" + r + "» con sus apuntes y traza? No se puede deshacer.")) return;
+  try { localStorage.removeItem(keyOf(activeRef)); } catch(e){}
+  state = emptyState(); activeRef = ""; caseRef.value = ""; restoreFields(); renderAll(); toast("Expediente eliminado.");
+});
+
+$("exportTxt").addEventListener("click", () => exportWithHash(reportText(), "txt", "text/plain;charset=utf-8"));
+$("exportHtml").addEventListener("click", () => exportWithHash(reportHtml(), "html", "text/html;charset=utf-8"));
+$("copyReport").addEventListener("click", () => { copyNow(reportText()); toast("Informe copiado."); });
+$("exportJson").addEventListener("click", () => exportWithHash(JSON.stringify({ format:"rastro-carrier", version:3, reference:activeRef, exportedAt:new Date().toISOString(), state }, null, 2), "json", "application/json;charset=utf-8"));
+$("importJson").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", async e => {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  if (file.size > 25 * 1024 * 1024) { toast("El archivo supera el límite de importación de 25 MB."); e.target.value = ""; return; }
+  try {
+    const d = JSON.parse(await file.text());
+    if (!["rastro-carrier","panel-consulta-transporte"].includes(d.format) || !d.state || typeof d.state !== "object" || !d.state.fields || typeof d.state.fields !== "object" || !Array.isArray(d.state.entries) || d.state.entries.some(x => !x || typeof x !== "object" || typeof x.text !== "string")) throw 0;
+    if (localStorage.getItem(keyOf(d.reference || "")) && !confirm("Ya existe el expediente «" + (d.reference || "sin-referencia") + "». ¿Sobrescribirlo?")) return;
+    activeRef = (d.reference || "").trim(); caseRef.value = activeRef;
+    state = { version:3, fields:d.state.fields || {}, entries:d.state.entries, trace:Array.isArray(d.state.trace) ? d.state.trace : [] };
+    restoreFields(); save(); renderAll(); toast("Copia restaurada.");
+  } catch(err){ toast("JSON no válido para esta herramienta."); }
+  finally { e.target.value = ""; }
+});
+
+/* ---------- Inicio ---------- */
+migrate();
+try {
+  const eng = localStorage.getItem(PREFIX + "__engine"); if (eng && ENGINES[eng]) $("engine").value = eng;
+  const theme = localStorage.getItem(PREFIX + "__theme");
+  if (theme === "dark" || theme === "light") { document.documentElement.dataset.theme = theme; $("themeBtn").textContent = theme === "dark" ? "☼ Tema claro" : "☾ Tema oscuro"; }
+} catch(e){}
+renderSourceSelect();
+state = loadState(activeRef); restoreFields(); renderAll();
+})();
+</script>
+</body>
+</html>
