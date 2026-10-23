@@ -47,16 +47,6 @@ RASTRO CARRIER facilita pivotes manuales. No realiza scraping, no inicia sesión
 
 Las fuentes pueden cambiar su dirección o funcionamiento. Compruebe que el portal oficial sigue vigente antes de usarlo y contraste los resultados con el organismo competente. Un enlace a un agregador no convierte su contenido en fuente oficial.
 
-## Probar el extractor REAT
-
-Con Node.js instalado, ejecute desde la raíz del repositorio:
-
-```bash
-node tests/reat-parser.test.js
-```
-
-La prueba no requiere paquetes adicionales y cubre texto en línea, etiquetas y valores separados, tablas con tabuladores, NIF/CIF/NIE y ausencia de datos reconocibles.
-
 
 ## Licencia y marca
 
